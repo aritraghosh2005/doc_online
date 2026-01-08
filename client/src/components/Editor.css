@@ -1,0 +1,16 @@
+.editor-container {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #f9f9f9;
+  min-height: 400px;
+  padding: 1rem;
+}
+
+/* This targets the actual input area of Tiptap */
+.ProseMirror {
+  outline: none;
+  min-height: 350px;
+  background: white;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
