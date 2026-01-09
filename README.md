@@ -51,7 +51,7 @@ To solve specific compatibility issues with Node.js v24 and Windows environments
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/YourUsername/doc_online.git](https://github.com/YourUsername/doc_online.git)
+git clone [https://github.com/aritraghosh2005/doc_online.git](https://github.com/aritraghosh2005/doc_online.git)
 cd doc_online
 ```
 ### 2. Setup the Backend
@@ -79,7 +79,7 @@ npm start
 * [x] **Phase 2:** Real-time Text Synchronization (Hocuspocus Integration)
 * [x] **Phase 3:** Persistent Storage (Save to MongoDB)
 * [x] **Phase 4:** Live Presence (User Cursors & Name Tags)
-* [ ] **Phase 5:** User Authentication (Login/Signup)
+* [x] **Phase 5:** User Authentication (Login/Signup)
 
 ## 👤 Author
 #### Aritra Ghosh
