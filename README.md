@@ -77,8 +77,8 @@ npm start
 ## 🚧 Roadmap & Future Improvements
 * [x] **Phase 1:** Project Setup & Basic UI
 * [x] **Phase 2:** Real-time Text Synchronization (Hocuspocus Integration)
-* [ ] **Phase 3:** Persistent Storage (Save to MongoDB)
-* [ ] **Phase 4:** Live Presence (User Cursors & Name Tags)
+* [x] **Phase 3:** Persistent Storage (Save to MongoDB)
+* [x] **Phase 4:** Live Presence (User Cursors & Name Tags)
 * [ ] **Phase 5:** User Authentication (Login/Signup)
 
 ## 👤 Author
