@@ -76,7 +76,7 @@ app.delete('/api/documents/:name', async (req, res) => {
 
 // --- 5. HOCUSPOCUS SETUP ---
 const hocuspocus = new Server({
-  // Port is removed from here because we will use the combined server below
+  // We leave the port out here because we are attaching it to our own server
   async onLoadDocument(data) {
     if (data.documentName === 'default') return null;
     try {
@@ -106,13 +106,14 @@ const hocuspocus = new Server({
 });
 
 // --- 6. CREATE COMBINED SERVER ---
-// We create one HTTP server that handles both Express and Hocuspocus WebSockets
 const server = http.createServer(app);
 
-// Attach Hocuspocus to the combined server
-hocuspocus.enableHTTP(server); 
+// Handle the WebSocket upgrade manually
+server.on('upgrade', (request, socket, head) => {
+  hocuspocus.handleUpgrade(request, socket, head);
+});
 
-// Start the combined server on the single Render port
+// Start the unified server
 server.listen(PORT, () => {
   console.log(`🚀 Unified Server running on port ${PORT}`);
 });
