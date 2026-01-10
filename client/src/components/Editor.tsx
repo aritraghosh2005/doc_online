@@ -1,5 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react'; // Added useEffect
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -8,8 +7,6 @@ import FontFamily from '@tiptap/extension-font-family';
 import Highlight from '@tiptap/extension-highlight';
 import Collaboration from '@tiptap/extension-collaboration';
 import * as Y from 'yjs';
-// @ts-ignore
-import { HocuspocusProvider } from '@hocuspocus/provider';
 import './Editor.css';
 
 // --- CUSTOM EXTENSION: FONT SIZE ---
@@ -48,10 +45,8 @@ const FontSize = Extension.create({
 // 1. TOOLBAR COMPONENT
 const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
   const [showHighlightPalette, setShowHighlightPalette] = useState(false);
-
   if (!editor) return null;
 
-  // Define Highlight Colors
   const highlightColors = [
     { color: '#fef08a', label: 'Yellow' },
     { color: '#a7f3d0', label: 'Green' },
@@ -67,7 +62,7 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
 
   const applyHighlight = (color: string) => {
     editor.chain().focus().setHighlight({ color }).run();
-    setShowHighlightPalette(false); // Close menu after selection
+    setShowHighlightPalette(false);
   };
 
   const removeHighlight = () => {
@@ -78,7 +73,6 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
   return (
     <div className="toolbar-container">
       <div className="word-toolbar">
-        
         {/* GROUP 1: HEADINGS */}
         <div className="group">
           <select 
@@ -89,12 +83,10 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
             <option value="0" style={{ fontSize: '14px' }}>Normal</option>
             <option value="1" style={{ fontSize: '24px', fontWeight: 'bold' }}>H1 - Title</option>
             <option value="2" style={{ fontSize: '20px', fontWeight: 'bold' }}>H2 - Heading</option>
-            <option value="3" style={{ fontSize: '16px', fontWeight: 'bold' }}>H3 - Subtitle</option>
           </select>
         </div>
-
         <div className="divider" />
-
+        
         {/* GROUP 2: FONT FAMILY & SIZE */}
         <div className="group">
           <select
@@ -102,12 +94,10 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
             className="toolbar-select font-family-select"
             defaultValue="Inter"
           >
-            <option value="Inter" style={{ fontFamily: 'Inter' }}>Inter</option>
-            <option value="Arial" style={{ fontFamily: 'Arial' }}>Arial</option>
-            <option value="Comic Sans MS" style={{ fontFamily: 'Comic Sans MS' }}>Comic</option>
-            <option value="Georgia" style={{ fontFamily: 'Georgia' }}>Georgia</option>
-            <option value="Times New Roman" style={{ fontFamily: 'Times New Roman' }}>Times</option>
-            <option value="Courier New" style={{ fontFamily: 'Courier New' }}>Courier</option>
+            <option value="Inter">Inter</option>
+            <option value="Arial">Arial</option>
+            <option value="Times New Roman">Times</option>
+            <option value="Courier New">Courier</option>
           </select>
 
           <select
@@ -118,42 +108,19 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
             <option value="12">12px</option>
             <option value="14">14px</option>
             <option value="16">16px</option>
-            <option value="18">18px</option>
             <option value="20">20px</option>
             <option value="24">24px</option>
-            <option value="30">30px</option>
           </select>
         </div>
-
         <div className="divider" />
-
-        {/* GROUP 3: FORMATTING & HIGHLIGHTER */}
+        
+        {/* GROUP 3: FORMATTING & COLORS */}
         <div className="group">
-          <button 
-            onClick={() => editor.chain().focus().toggleBold().run()} 
-            className={editor.isActive('bold') ? 'is-active' : ''}
-            title="Bold"
-          >
-            <strong>B</strong>
-          </button>
-          <button 
-            onClick={() => editor.chain().focus().toggleItalic().run()} 
-            className={editor.isActive('italic') ? 'is-active' : ''}
-            title="Italic"
-          >
-            <em>I</em>
-          </button>
-          <button 
-            onClick={() => editor.chain().focus().toggleUnderline().run()} 
-            className={editor.isActive('underline') ? 'is-active' : ''}
-            title="Underline"
-          >
-            <u>U</u>
-          </button>
+          <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Bold"><strong>B</strong></button>
+          <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''} title="Italic"><em>I</em></button>
+          <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''} title="Underline"><u>U</u></button>
           
-          {/* --- DROPDOWN HIGHLIGHTER --- */}
           <div className="highlight-menu-wrapper">
-             {/* The Main Button */}
              <button 
                 className={`highlight-trigger-btn ${editor.isActive('highlight') ? 'is-active' : ''}`}
                 onClick={() => setShowHighlightPalette(!showHighlightPalette)}
@@ -162,19 +129,9 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
                 🖍️ <span style={{ fontSize: '10px', marginLeft: '2px' }}>▼</span>
              </button>
 
-             {/* The Floating Palette */}
              {showHighlightPalette && (
                 <div className="highlight-popup">
-                   {/* Unset Button */}
-                   <button
-                       onClick={removeHighlight}
-                       className="swatch-btn unset-swatch"
-                       title="Remove Highlight"
-                   >
-                       🚫
-                   </button>
-                   
-                   {/* Color Buttons */}
+                   <button onClick={removeHighlight} className="swatch-btn unset-swatch" title="No Color">🚫</button>
                    {highlightColors.map(({ color, label }) => (
                        <button
                            key={color}
@@ -188,9 +145,8 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
              )}
           </div>
         </div>
-        
         <div className="divider" />
-
+        
         {/* GROUP 4: LISTS */}
         <div className="group">
           <button 
@@ -209,25 +165,24 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
           </button>
         </div>
 
-        {/* SAVE BUTTON */}
         <div className="save-group">
-          <button onClick={onSave} className="save-btn">
-            💾 Save
-          </button>
+          <button onClick={onSave} className="save-btn" title="Save (Ctrl+S)">💾 Save</button>
         </div>
       </div>
     </div>
   );
 };
 
-// 2. TIPTAP EDITOR COMPONENT
-const TiptapEditor = ({ provider, ydoc }: { provider: any, ydoc: Y.Doc }) => {
+// 2. MAIN EXPORT COMPONENT
+const Editor = ({ provider, ydoc }: { provider: any, ydoc: Y.Doc }) => {
   const [, setForceUpdate] = useState(0);
   const [showToast, setShowToast] = useState(false);
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ history: false } as any),
+      StarterKit.configure({ 
+        history: false 
+      } as any),
       Underline,
       TextStyle, 
       FontFamily,
@@ -245,6 +200,20 @@ const TiptapEditor = ({ provider, ydoc }: { provider: any, ydoc: Y.Doc }) => {
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  // --- SHORTCUT LISTENER (Ctrl+S) ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault(); // Stop browser "Save Page" dialog
+        handleSave();       // Trigger our save logic
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="editor-wrapper">
       <MenuBar editor={editor} onSave={handleSave} />
@@ -256,35 +225,6 @@ const TiptapEditor = ({ provider, ydoc }: { provider: any, ydoc: Y.Doc }) => {
       </div>
     </div>
   );
-};
-
-// 3. MAIN EDITOR WRAPPER
-const Editor = () => {
-  const { id } = useParams();
-  const documentId = id || 'default_doc';
-  
-  const ydoc = useMemo(() => new Y.Doc(), []);
-  const [provider, setProvider] = useState<any>(null);
-  const [connected, setConnected] = useState(false);
-
-  useEffect(() => {
-    const newProvider = new HocuspocusProvider({
-      url: 'ws://localhost:1234',
-      name: documentId,
-      document: ydoc,
-      onConnect: () => setConnected(true),
-      onClose: () => setConnected(false),
-    });
-
-    setProvider(newProvider);
-    return () => { newProvider.destroy(); };
-  }, [ydoc, documentId]);
-
-  if (!provider || !connected) {
-    return <div className="loading-spinner">Connecting to document...</div>;
-  }
-
-  return <TiptapEditor provider={provider} ydoc={ydoc} />;
 };
 
 export default Editor;

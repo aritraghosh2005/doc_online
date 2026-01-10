@@ -1,5 +1,23 @@
-node_modules
+# Dependencies (Recursively ignores all node_modules)
+node_modules/
+
+# Environment Variables (CRITICAL)
 .env
-dist
-build
+.env.local
+.env.*.local
+
+# Build Outputs
+dist/
+build/
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# System Files
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,34 +1,34 @@
-/* Global Reset */
+/* =========================================
+   GLOBAL RESET & LAYOUT
+   ========================================= */
 * { box-sizing: border-box; }
 
-/* 1. App Window */
 .workspace-layout {
   display: flex;
   width: 100vw; height: 100vh;
   overflow: hidden;
   background-color: #f3f4f6;
   position: fixed; top: 0; left: 0;
+  font-family: 'Inter', sans-serif;
 }
 
-/* 2. Sidebars */
+/* =========================================
+   SIDEBAR (BASE STYLES)
+   ========================================= */
 .sidebar {
   height: 100%;
   background: white;
   border-right: 1px solid #e5e7eb;
   border-left: 1px solid #e5e7eb;
   flex-shrink: 0;
-  
-  /* Flex layout for sticky footer */
   display: flex; flex-direction: column;
-  
-  /* CRITICAL: Allows pop-ups to float outside */
+  /* Allows pop-ups like download menu to float outside */
   overflow: visible; 
   z-index: 1000; 
-  
   transition: width 0.3s ease;
 }
 
-.sidebar.left-side.open { width: 260px; }
+.sidebar.left-side.open { width: 300px; } /* Slightly wider for file names */
 .sidebar.left-side.closed { width: 50px; }
 .sidebar.right-side.open { width: 280px; }
 .sidebar.right-side.closed { width: 50px; }
@@ -43,7 +43,7 @@
   flex-shrink: 0;
 }
 
-.sidebar-header h3 { font-size: 16px; font-weight: 600; color: #333; margin: 0; }
+.sidebar-header h3 { font-size: 16px; font-weight: 600; color: #333; margin: 0; white-space: nowrap; }
 
 .toggle-btn {
   width: 32px; height: 32px;
@@ -55,7 +55,7 @@
 
 .toggle-btn:hover { background: #e5e7eb; transform: scale(1.05); }
 
-/* SCROLLABLE CONTENT AREA */
+/* Scrollable Content Area */
 .sidebar-content { 
   flex: 1; 
   overflow-y: auto; 
@@ -63,7 +63,7 @@
   scrollbar-width: thin;
 }
 
-/* FIXED FOOTER */
+/* Footer (Fixed at bottom) */
 .sidebar-footer {
   flex-shrink: 0;
   background: white;
@@ -73,7 +73,9 @@
   position: relative;
 }
 
-/* 3. Center Stage */
+/* =========================================
+   CENTER STAGE (EDITOR)
+   ========================================= */
 .editor-container {
   flex: 1; min-width: 0; height: 100%;
   overflow: auto; position: relative;
@@ -82,7 +84,156 @@
   padding: 40px;
 }
 
-/* 4. Tool Box Components */
+/* =========================================
+   LEFT SIDEBAR: FILE MANAGER STYLES
+   ========================================= */
+
+/* Rename & New Doc Area */
+.doc-meta-section {
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #e5e7eb;
+}
+
+.doc-meta-section label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.doc-title-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.doc-title-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.new-doc-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #10b981; /* Green */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+.new-doc-btn:hover { background-color: #059669; }
+
+.divider-line {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 15px 0;
+}
+
+/* --- DOCUMENT LIST & ACTIVE HIGHLIGHTS --- */
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  /* Ensure list scrolls independently if it gets too long */
+  max-height: calc(100vh - 350px);
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.recent-list::-webkit-scrollbar { width: 4px; }
+.recent-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+/* Base Document Item Card */
+.doc-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #4b5563;
+  position: relative;
+  overflow: hidden; /* Keeps the active border clean */
+}
+
+/* Hover Effect */
+.doc-item:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  transform: translateX(3px); /* Subtle slide interaction */
+}
+
+/* 🔥 ACTIVE STATE (The Highlight) 🔥 */
+.doc-item.active {
+  background-color: #eff6ff; /* Light Blue Background */
+  border-color: #bfdbfe;     /* Blue Border */
+  color: #1d4ed8;            /* Dark Blue Text */
+  font-weight: 600;
+  
+  /* The Blue Indicator Strip on the left */
+  border-left: 5px solid #2563eb;
+  border-radius: 4px 8px 8px 4px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.doc-item.active .doc-name-text { color: #1d4ed8; }
+
+.doc-name-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 10px;
+}
+
+/* Delete Button (Trash Can) */
+.list-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 5px;
+  border-radius: 4px;
+  opacity: 0; /* Hidden by default */
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.list-del-btn:hover {
+  background-color: #fee2e2; /* Light Red BG */
+  transform: scale(1.1);
+}
+
+/* Show delete button on hover or if active */
+.doc-item:hover .list-del-btn,
+.doc-item.active .list-del-btn {
+  opacity: 1;
+}
+
+/* =========================================
+   RIGHT SIDEBAR: TOOLS & WIDGETS
+   ========================================= */
+
 .tool-box {
   background: white; margin-bottom: 20px; padding: 0;
   border-radius: 8px; border: 1px solid #e5e7eb;
@@ -95,96 +246,58 @@
   font-size: 14px; color: #555;
 }
 
-/* --- PROFILE SECTION --- */
-.profile-box { 
-  padding: 15px; display: flex; align-items: flex-start; gap: 15px; 
-}
-
+/* Profile Box */
+.profile-box { padding: 15px; display: flex; align-items: flex-start; gap: 15px; }
 .avatar { 
   width: 45px; height: 45px; background: #2563eb; color: white; 
   border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-  font-weight: bold; font-size: 18px; flex-shrink: 0;
+  font-weight: bold; font-size: 18px; flex-shrink: 0; object-fit: cover;
 }
-
-.user-details { 
-  display: flex; flex-direction: column; width: 100%; gap: 8px; 
-}
-
-.user-header {
-  display: flex; align-items: center; width: 100%; position: relative; 
-}
-
+.user-details { display: flex; flex-direction: column; width: 100%; gap: 8px; }
 .user-name { font-weight: 700; font-size: 15px; color: #111; }
-
-.settings-icon {
-  background: transparent; border: none; cursor: pointer; 
-  font-size: 18px; color: #374151; padding: 4px; line-height: 1;
-  margin-left: auto; transition: transform 0.3s ease, color 0.2s;
-}
-
-.settings-icon:hover { 
-  transform: rotate(90deg); color: #2563eb; background: transparent; 
-}
-
 .logout-btn-prominent {
   background: #ef4444; color: white; border: none;
   padding: 6px 12px; border-radius: 4px; font-size: 11px;
-  cursor: pointer; width: 80%; margin: 0 auto; display: block;
-  text-align: center; font-weight: 600;
+  cursor: pointer; width: 100%; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.2s;
 }
+.logout-btn-prominent:hover { background: #dc2626; }
 
-.logout-btn-prominent:hover { background: #dc2626; transform: translateY(-1px); }
-.logout-btn-prominent:active { transform: translateY(0); }
-
-/* --- TO-DO LIST STYLING --- */
-.todo-section { padding-bottom: 5px; }
-
+/* To-Do List */
 .todo-input-group { 
   display: flex; padding: 10px; gap: 8px; 
   border-bottom: 1px solid #eee; align-items: center; margin-bottom: 10px;
 }
-
 .todo-input-group input { 
   flex: 1; padding: 6px 10px; border: 1px solid #ddd; 
   border-radius: 4px; outline: none; font-size: 13px;
 }
-
 .todo-input-group button { 
   width: 28px; height: 28px; padding: 0;
   background: #2563eb; color: white; border: none; 
   border-radius: 4px; cursor: pointer; 
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; line-height: 1;
 }
-.todo-input-group button:hover { background: #1d4ed8; }
 
 .todo-list { 
   list-style: none; padding: 0 10px; margin: 0;
   max-height: 160px; overflow-y: auto; scrollbar-width: thin;
 }
-
 .todo-list li { 
   display: flex; justify-content: space-between; align-items: center;
   border: 1px solid #e5e7eb; border-radius: 6px;        
   margin-bottom: 8px; background: white;
   padding: 6px 10px; font-size: 13px; color: #374151;
-  min-height: 36px; transition: all 0.2s ease;
+  transition: all 0.2s ease;
 }
-
-.todo-list li:hover { border-color: #d1d5db; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
-.todo-list li span { cursor: pointer; flex: 1; margin-right: 10px; line-height: 1.4; }
+.todo-list li:hover { border-color: #d1d5db; }
 .todo-list li.completed span { text-decoration: line-through; color: #9ca3af; }
-
 .del-btn { 
-  background: transparent !important; border: none !important; color: #9ca3af; 
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  width: 20px !important; height: 20px !important;
-  font-size: 18px; line-height: 1; padding: 0; border-radius: 4px;
+  background: transparent; border: none; color: #9ca3af; 
+  cursor: pointer; font-size: 16px; padding: 0 4px;
 }
-.del-btn:hover { color: #ef4444; background-color: #fee2e2 !important; }
+.del-btn:hover { color: #ef4444; }
 
 /* Notes Area */
 .notes-area { 
@@ -192,13 +305,25 @@
   resize: vertical; font-family: inherit; font-size: 13px; outline: none; 
 }
 
-/* --- DOWNLOAD SECTION (Footer Fixed) --- */
+/* =========================================
+   DOWNLOAD SECTION (FOOTER)
+   ========================================= */
 .download-section { 
-  padding: 15px; position: relative;
+  padding: 15px; 
+  /* No position:relative here anymore */
+}
+
+/* NEW WRAPPER handles the centering and positioning context */
+.download-wrapper {
+  position: relative; /* The menu positions relative to THIS */
+  width: 80%;         /* Set width here */
+  margin: 0 auto;     /* Center the whole block */
 }
 
 .main-download-btn {
-  width: 60%; padding: 10px 15px; margin: 0 auto; background: #1f2937; color: white;
+  width: 100%;        /* Fill the wrapper */
+  padding: 10px 15px; 
+  background: #1f2937; color: white;
   border: none; border-radius: 6px; cursor: pointer; font-weight: 600;
   display: flex; justify-content: space-between; align-items: center;
   transition: background 0.2s;
@@ -208,14 +333,21 @@
 
 .download-options {
   position: absolute;
-  right: 80%; bottom: 15px; 
-  width: 180px; margin-right: 10px; 
+  /* Now this is relative to the BUTTON, not the sidebar edge */
+  right: 100%; 
+  bottom: 0; 
+  
+  /* Tiny gap (2px) so it sits tight against the button */
+  margin-right: 6px; 
+
+  width: 180px; 
   background: white; border: 1px solid #ddd; border-radius: 6px; 
   overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); 
-  z-index: 2000; animation: slideLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2000; 
+  animation: slideInLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes slideLeft { 
+@keyframes slideInLeft { 
   from { opacity: 0; transform: translateX(10px); } 
   to { opacity: 1; transform: translateX(0); } 
 }
