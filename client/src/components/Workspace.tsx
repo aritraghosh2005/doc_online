@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser, useClerk } from '@clerk/clerk-react';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import Editor from './Editor';
 import './Workspace.css';
 
@@ -7,32 +10,62 @@ const Workspace = () => {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [showDownloads, setShowDownloads] = useState(false);
-  const [username, setUsername] = useState('User');
   
-  // TO-DO LIST: Initialize from LocalStorage
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
+
+  // Tasks State
   const [tasks, setTasks] = useState<{id: number, text: string, done: boolean}[]>(() => {
     const saved = localStorage.getItem('todo_tasks');
     return saved ? JSON.parse(saved) : [];
   });
   const [newTask, setNewTask] = useState('');
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('username');
-    if (storedUser) setUsername(storedUser);
-  }, []);
-
-  // Auto-save tasks
   useEffect(() => {
     localStorage.setItem('todo_tasks', JSON.stringify(tasks));
   }, [tasks]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
-    window.location.reload();
+  };
+
+  // --- 1. EXPORT TO PDF ---
+  const exportPDF = () => {
+    // FIX: specific cast to HTMLElement
+    const element = document.querySelector('.a4-sheet') as HTMLElement;
+    
+    if (element) {
+      const opt = {
+        margin: 10,
+        filename: `Document_${Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      // FIX: Cast opt to any to bypass strict type checking
+      html2pdf().set(opt as any).from(element).save();
+    }
+  };
+
+  // --- 2. EXPORT TO WORD ---
+  const exportWord = () => {
+    const element = document.querySelector('.ProseMirror');
+    
+    if (element) {
+      const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML to Word Document with JavaScript</title></head><body>";
+      const footer = "</body></html>";
+      const sourceHTML = header + element.innerHTML + footer;
+      
+      const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+      const fileDownload = document.createElement("a");
+      document.body.appendChild(fileDownload);
+      fileDownload.href = source;
+      fileDownload.download = `Document_${Date.now()}.doc`;
+      fileDownload.click();
+      document.body.removeChild(fileDownload);
+    }
   };
 
   const addTask = () => {
@@ -83,16 +116,19 @@ const Workspace = () => {
 
         {rightOpen && (
           <>
-            {/* SCROLLABLE CONTENT AREA */}
             <div className="sidebar-content">
-              
               {/* PROFILE BOX */}
               <div className="tool-box profile-box">
-                <div className="avatar">{username.charAt(0).toUpperCase()}</div>
+                <img 
+                   src={user?.imageUrl} 
+                   alt="Profile" 
+                   className="avatar" 
+                   style={{ borderRadius: '50%', objectFit: 'cover' }}
+                />
                 <div className="user-details">
                   <div className="user-header">
-                    <span className="user-name">Hi, {username}</span>
-                    <button className="settings-icon" title="Settings">⚙️</button>
+                    <span className="user-name">{user?.firstName || "User"}</span>
+                    <button className="settings-icon">⚙️</button>
                   </div>
                   <button className="logout-btn-prominent" onClick={handleLogout}>Logout</button>
                 </div>
@@ -124,7 +160,7 @@ const Workspace = () => {
                 </ul>
               </div>
 
-              {/* QUICK NOTES */}
+              {/* NOTES */}
               <div className="tool-box tools-section">
                 <h4>📝 Quick Notes</h4>
                 <textarea 
@@ -135,7 +171,7 @@ const Workspace = () => {
               </div>
             </div>
 
-            {/* FIXED FOOTER (Contains Download Button) */}
+            {/* DOWNLOAD FOOTER */}
             <div className="sidebar-footer">
               <div className="download-section">
                 <button 
@@ -148,8 +184,8 @@ const Workspace = () => {
                 
                 {showDownloads && (
                   <div className="download-options">
-                    <button>📄 Export as PDF</button>
-                    <button>📝 Export as DOCX</button>
+                    <button onClick={exportPDF}>📄 Export as PDF</button>
+                    <button onClick={exportWord}>📝 Export as DOCX</button>
                   </div>
                 )}
               </div>

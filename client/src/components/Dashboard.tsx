@@ -1,51 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { useUser, UserButton } from '@clerk/clerk-react';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const [username, setUsername] = useState('User');
+  const { user } = useUser();
+  const [roomId, setRoomId] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('username');
-    if (storedUser) setUsername(storedUser);
-  }, []);
+  const handleCreateNew = () => {
+    const newDocId = uuidv4();
+    navigate(`/document/${newDocId}`);
+  };
 
-  const createNewDoc = () => {
-    const newId = uuidv4();
-    // Navigate to the Workspace with a fresh ID
-    navigate(`/document/${newId}`);
+  const handleJoin = () => {
+    if (!roomId.trim()) return alert("Please enter a Document ID!");
+    navigate(`/document/${roomId}`);
   };
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1>doc_online</h1>
-        <div className="user-menu">
-          <span>Welcome, <strong>{username}</strong></span>
-        </div>
-      </header>
+    <div className="login-container">
+      {/* Top Right Profile Menu */}
+      <div style={{ position: 'absolute', top: 20, right: 20 }}>
+        <UserButton afterSignOutUrl="/" />
+      </div>
 
-      <main className="dashboard-content">
-        <div className="action-bar">
-          <h2>Your Documents</h2>
-          <button className="create-btn" onClick={createNewDoc}>
-            <span className="plus-icon">+</span> Blank Document
+      <div className="login-card">
+        <h1>📄 Doc_Online</h1>
+        <p className="subtitle">Welcome back, <b>{user?.firstName}</b>!</p>
+
+        <div className="action-buttons">
+          <button className="btn-primary" onClick={handleCreateNew}>
+            ✨ Create New Document
           </button>
-        </div>
+          
+          <div className="divider"><span>OR</span></div>
 
-        <div className="doc-grid">
-          {/* We will map through real DB documents here in Phase 4 */}
-          <div className="doc-card placeholder">
-            <div className="doc-preview"></div>
-            <div className="doc-info">
-              <p>No documents yet.</p>
-              <span>Click "+" to start writing</span>
-            </div>
+          <div className="join-section">
+            <input 
+              type="text" 
+              placeholder="Paste Document ID here..." 
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+            />
+            <button className="btn-secondary" onClick={handleJoin}>
+              Join
+            </button>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

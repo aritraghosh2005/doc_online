@@ -1,43 +1,55 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Login from './components/Login';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth, RedirectToSignIn } from '@clerk/clerk-react';
+import Workspace from './components/Workspace';
 import Dashboard from './components/Dashboard';
-import Workspace from './components/Workspace'; 
-import './App.css';
 
-function App() {
-  const [token, setToken] = useState<string | null>(null);
+// --- Auth Wrapper Component ---
+// This checks if the user is logged in. 
+// If yes -> Renders the page. 
+// If no -> Redirects to Clerk Login.
+const RequireAuth = ({ children }: { children: React.ReactNode }) => {
+  const { isLoaded, isSignedIn } = useAuth();
 
-  useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    if (savedToken) setToken(savedToken);
-  }, []);
-
-  const handleLogin = (newToken: string, newUsername: string) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('username', newUsername);
-    setToken(newToken);
-  };
-
-  if (!token) {
-    return <Login onLogin={handleLogin} />;
+  if (!isLoaded) {
+    return <div style={{ display: 'flex', justifyContent: 'center', marginTop: '50px' }}>Loading...</div>;
   }
 
+  if (!isSignedIn) {
+    return <RedirectToSignIn />;
+  }
+
+  return <>{children}</>;
+};
+
+function App() {
   return (
-    <BrowserRouter>
-      <div className="App">
-         <Routes>
-           {/* If user is logged in, show Dashboard at the root */}
-           <Route path="/" element={<Dashboard />} />
-           
-           {/* Show Workspace when a document is opened */}
-           <Route path="/document/:id" element={<Workspace />} />
-           
-           {/* Redirect any other URL back to Dashboard */}
-           <Route path="*" element={<Navigate to="/" />} />
-         </Routes>
-      </div>
-    </BrowserRouter>
+    <Router>
+      <Routes>
+        {/* Route 1: Dashboard (Protected) */}
+        <Route 
+          path="/" 
+          element={
+            <RequireAuth>
+              <Dashboard />
+            </RequireAuth>
+          } 
+        />
+        
+        {/* Route 2: Workspace (Protected) */}
+        <Route 
+          path="/document/:id" 
+          element={
+            <RequireAuth>
+              <Workspace />
+            </RequireAuth>
+          } 
+        />
+
+        {/* Catch-all redirect */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
   );
 }
 
