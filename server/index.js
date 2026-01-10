@@ -3,35 +3,34 @@ const cors = require('cors');
 const { Server } = require('@hocuspocus/server');
 const mongoose = require('mongoose');
 const Y = require('yjs');
+const http = require('http'); // Required to merge Express and WebSockets
 
-// --- CONFIGURATION ---
-const API_PORT = 1234;       // REST API
-const COLLAB_PORT = 1235;    // WebSocket
-const MONGO_URI = 'mongodb://127.0.0.1:27017/doc_online';
+// --- 1. CONFIGURATION ---
+// Use environment variables for production
+const MONGO_URI = process.env.MONGO_URI; 
+const PORT = process.env.PORT || 1234; 
 
-// --- 1. SETUP EXPRESS APP ---
+// --- 2. SETUP EXPRESS APP ---
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- 2. DATABASE SETUP ---
+// --- 3. DATABASE SETUP ---
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB'))
+  .then(() => console.log('✅ Connected to MongoDB Atlas'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 const DocumentSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true }, // UUID
+  name: { type: String, required: true, unique: true },
   title: { type: String, default: 'Untitled Document' },
-  ownerId: { type: String, required: true }, // Clerk User ID
-  data: Buffer, // Yjs Binary Data
+  ownerId: { type: String, required: true },
+  data: Buffer,
   lastModified: { type: Date, default: Date.now }
 });
 
 const DocModel = mongoose.model('Document', DocumentSchema);
 
-// --- 3. API ROUTES ---
-
-// GET: List documents for a specific user
+// --- 4. API ROUTES ---
 app.get('/api/documents', async (req, res) => {
   const { userId } = req.query;
   try {
@@ -42,18 +41,12 @@ app.get('/api/documents', async (req, res) => {
   }
 });
 
-// POST: Create new document
 app.post('/api/documents', async (req, res) => {
   try {
     const { name, title, ownerId } = req.body;
     let doc = await DocModel.findOne({ name });
     if (!doc) {
-      doc = new DocModel({ 
-        name, 
-        title: title || 'Untitled Document', 
-        ownerId, 
-        data: Buffer.from([]) 
-      });
+      doc = new DocModel({ name, title: title || 'Untitled Document', ownerId, data: Buffer.from([]) });
       await doc.save();
     }
     res.json(doc);
@@ -62,22 +55,16 @@ app.post('/api/documents', async (req, res) => {
   }
 });
 
-// PUT: Update Title Explicitly (Fixes Renaming Bug)
 app.put('/api/documents/:name', async (req, res) => {
   try {
     const { title } = req.body;
-    await DocModel.findOneAndUpdate(
-      { name: req.params.name },
-      { title: title },
-      { new: true }
-    );
+    await DocModel.findOneAndUpdate({ name: req.params.name }, { title: title }, { new: true });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update title' });
   }
 });
 
-// DELETE: Remove document
 app.delete('/api/documents/:name', async (req, res) => {
   try {
     await DocModel.deleteOne({ name: req.params.name });
@@ -87,47 +74,29 @@ app.delete('/api/documents/:name', async (req, res) => {
   }
 });
 
-// Start Express API
-app.listen(API_PORT, () => {
-  console.log(`🚀 API Server running on http://localhost:${API_PORT}`);
-});
-
-// --- 4. HOCUSPOCUS WEBSOCKET SERVER ---
+// --- 5. HOCUSPOCUS SETUP ---
 const hocuspocus = new Server({
-  port: COLLAB_PORT,
-
-async onLoadDocument(data) {
+  // Port is removed from here because we will use the combined server below
+  async onLoadDocument(data) {
     if (data.documentName === 'default') return null;
-
     try {
       const doc = await DocModel.findOne({ name: data.documentName });
-      
-      // Check if doc exists AND has data
       if (doc && doc.data && doc.data.length > 0) {
         const docData = new Uint8Array(doc.data);
-        
-        // Wrap Yjs update in a try-catch to handle corruption
         try {
           Y.applyUpdate(data.document, docData);
-          // console.log(`📂 Loaded: ${data.documentName}`);
           return data.document;
         } catch (e) {
-          console.error(`⚠️ Corrupted document found: ${data.documentName}. Starting fresh.`);
-          return null; // Start fresh if corrupted
+          console.error(`⚠️ Corrupted document: ${data.documentName}`);
+          return null;
         }
       }
-    } catch (err) {
-      console.error("Database error during load:", err);
-    }
-    
-    return null; // Start fresh if no document found
+    } catch (err) { console.error("Database error during load:", err); }
+    return null;
   },
-
   async onStoreDocument(data) {
     const update = Y.encodeStateAsUpdate(data.document);
     const buf = Buffer.from(update);
-    // Note: We don't save title here anymore to avoid overwriting the API update
-    
     await DocModel.findOneAndUpdate(
       { name: data.documentName },
       { data: buf, lastModified: new Date() },
@@ -136,5 +105,14 @@ async onLoadDocument(data) {
   },
 });
 
-hocuspocus.listen()
-  .then(() => console.log(`✨ Collab Server running on ws://localhost:${COLLAB_PORT}`));
+// --- 6. CREATE COMBINED SERVER ---
+// We create one HTTP server that handles both Express and Hocuspocus WebSockets
+const server = http.createServer(app);
+
+// Attach Hocuspocus to the combined server
+hocuspocus.enableHTTP(server); 
+
+// Start the combined server on the single Render port
+server.listen(PORT, () => {
+  console.log(`🚀 Unified Server running on port ${PORT}`);
+});
