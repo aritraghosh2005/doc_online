@@ -18,9 +18,9 @@ export default defineConfig({
         theme_color: '#ffffff',
         icons: [
           {
-            src: 'logo192.png', // Ensure this matches your actual file name
-            sizes: '192x192',
-            type: 'image/png'
+            src: 'logo1.ico', 
+            sizes: '64x64 32x32 24x24 16x16',
+            type: 'image/x-icon'
           }
         ]
       }
