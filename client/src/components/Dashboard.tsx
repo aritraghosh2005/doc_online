@@ -42,7 +42,7 @@ const Dashboard = () => {
     let animationFrameId: number;
     let particles: Particle[] = [];
     
-    // 1. NEW: Add a counter to track mouse moves
+    // 1. Counter to track mouse moves
     let throttleCounter = 0; 
 
     const resizeCanvas = () => {
@@ -51,15 +51,14 @@ const Dashboard = () => {
     };
 
     const createParticles = (e: MouseEvent) => {
-      // 2. NEW: Increment counter
+      // 2. Increment counter
       throttleCounter++;
 
-      // 3. NEW: The Throttle Check
-      // Only spawn particles every 4th mouse event.
-      // Increase '4' to make it less dense, decrease to 1 to make it dense.
-      if (throttleCounter % 4 !== 0) return; 
+      // 3. Throttle Check - CHANGED from 4 to 2
+      // Lower number = gaps filled in = smoother line
+      if (throttleCounter % 2 !== 0) return; 
 
-      const count = 1; // Keep this low (1 or 2) when throttling
+      const count = 1; 
       for (let i = 0; i < count; i++) {
         const r = Math.floor(Math.random() * 255);
         const g = Math.floor(Math.random() * 255);
@@ -68,9 +67,11 @@ const Dashboard = () => {
         particles.push({
           x: e.clientX,
           y: e.clientY,
-          vx: (Math.random() - 0.5) * 3,
-          vy: (Math.random() - 0.5) * 3,
-          size: Math.random() * 10 + 10,
+          // CHANGED: Velocity reduced from 3 to 1 for "gentle" drift
+          vx: (Math.random() - 0.5) * 1, 
+          vy: (Math.random() - 0.5) * 1,
+          // CHANGED: Size reduced from 10-20 to 2-6 for "dust" look
+          size: Math.random() * 4 + 7,
           color: `${r},${g},${b}`,
           life: 1.0
         });
@@ -85,8 +86,11 @@ const Dashboard = () => {
           const p = particles[i];
           p.x += p.vx;
           p.y += p.vy;
-          p.life -= 0.02; 
-          p.size *= 0.95; 
+          
+          // CHANGED: Slower fade (was 0.02)
+          p.life -= 0.015; 
+          // CHANGED: Slower shrink (was 0.95)
+          p.size *= 0.98; 
   
           if (p.life > 0 && p.size > 0.5) {
             ctx.beginPath();
