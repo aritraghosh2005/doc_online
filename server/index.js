@@ -17,7 +17,11 @@ const FRONTEND_URL = process.env.FRONTEND_URL || '*';
 // --- SETUP EXPRESS APP ---
 const app = express();
 app.use(cors({
-  origin: FRONTEND_URL, // Restrict to your frontend domain in production
+  origin: [
+    "http://localhost:5173",                          // Allow local frontend
+    "https://doconlinefrontend-qgsbo8dsk-aritra-ghoshs-projects-dd96853d.vercel.app", // Allow specific Vercel preview
+    "https://doconlinefrontend.vercel.app"            // Allow main Vercel app
+  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
