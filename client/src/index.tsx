@@ -5,7 +5,7 @@ import App from './App';
 import { ClerkProvider } from '@clerk/clerk-react';
 
 // Get the key from the .env file
-const PUBLISHABLE_KEY = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key. Check your .env file!");
