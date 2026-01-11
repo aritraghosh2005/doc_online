@@ -1,17 +1,26 @@
+require('dotenv').config(); // Load environment variables
 const express = require('express');
 const cors = require('cors');
 const { Server } = require('@hocuspocus/server');
 const mongoose = require('mongoose');
 const Y = require('yjs');
+const http = require('http'); // Required to combine servers
 
 // --- CONFIGURATION ---
-const API_PORT = 1234;       
-const COLLAB_PORT = 1235;    
-const MONGO_URI = 'mongodb://127.0.0.1:27017/doc_online';
+// Use the PORT provided by the host, or default to 1234 for local
+const PORT = process.env.PORT || 1234;
+// Use the MONGO_URL from .env, or default to local
+const MONGO_URI = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/doc_online';
+// Allow frontend connection
+const FRONTEND_URL = process.env.FRONTEND_URL || '*'; 
 
 // --- SETUP EXPRESS APP ---
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: FRONTEND_URL, // Restrict to your frontend domain in production
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 app.use(express.json());
 
 // --- DATABASE SETUP ---
@@ -19,12 +28,12 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// [CHANGE 1] Update Schema to include "collaborators" array
+// --- SCHEMA DEFINITION ---
 const DocumentSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true }, 
   title: { type: String, default: 'Untitled Document' },
   ownerId: { type: String, required: true }, 
-  collaborators: { type: [String], default: [] }, // NEW FIELD
+  collaborators: { type: [String], default: [] },
   data: Buffer, 
   lastModified: { type: Date, default: Date.now }
 });
@@ -33,14 +42,14 @@ const DocModel = mongoose.model('Document', DocumentSchema);
 
 // --- API ROUTES ---
 
-// [CHANGE 2] GET: List documents where user is Owner OR Collaborator
+// GET: List documents
 app.get('/api/documents', async (req, res) => {
   const { userId } = req.query;
   try {
     const docs = await DocModel.find({ 
       $or: [
         { ownerId: userId },
-        { collaborators: userId } // Check if user is in the list
+        { collaborators: userId }
       ]
     }, 'name title lastModified ownerId').sort({ lastModified: -1 });
     res.json(docs);
@@ -59,7 +68,7 @@ app.post('/api/documents', async (req, res) => {
         name, 
         title: title || 'Untitled Document', 
         ownerId, 
-        collaborators: [], // Init empty
+        collaborators: [],
         data: Buffer.from([]) 
       });
       await doc.save();
@@ -70,28 +79,18 @@ app.post('/api/documents', async (req, res) => {
   }
 });
 
-// [CHANGE 3] NEW POST: Join a document
+// POST: Join a document
 app.post('/api/documents/join', async (req, res) => {
   const { documentId, userId } = req.body;
   try {
-    // 1. Find the doc
     const doc = await DocModel.findOne({ name: documentId });
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    if (doc.ownerId === userId) return res.json({ success: true, message: 'User is already the owner' });
     
-    if (!doc) {
-      return res.status(404).json({ error: 'Document not found' });
-    }
-
-    // 2. Prevent adding the owner as a collaborator
-    if (doc.ownerId === userId) {
-      return res.json({ success: true, message: 'User is already the owner' });
-    }
-
-    // 3. Add userId to collaborators if not already there
     if (!doc.collaborators.includes(userId)) {
       doc.collaborators.push(userId);
       await doc.save();
     }
-
     res.json({ success: true, title: doc.title });
   } catch (err) {
     console.error("Join error:", err);
@@ -124,13 +123,14 @@ app.delete('/api/documents/:name', async (req, res) => {
   }
 });
 
-app.listen(API_PORT, () => {
-  console.log(`🚀 API Server running on http://localhost:${API_PORT}`);
-});
+// --- COMBINED SERVER SETUP ---
 
-// --- HOCUSPOCUS SERVER (Unchanged) ---
+// 1. Create standard HTTP server wrapping Express
+const httpServer = http.createServer(app);
+
+// 2. Configure Hocuspocus
 const hocuspocus = new Server({
-  port: COLLAB_PORT,
+  // No port here, we attach it manually below
   async onLoadDocument(data) {
     if (data.documentName === 'default') return null;
     try {
@@ -160,4 +160,12 @@ const hocuspocus = new Server({
   },
 });
 
-hocuspocus.listen().then(() => console.log(`✨ Collab Server running on ws://localhost:${COLLAB_PORT}`));
+// 3. Handle WebSocket Upgrades manually
+httpServer.on('upgrade', (request, socket, head) => {
+  hocuspocus.handleUpgrade(request, socket, head);
+});
+
+// 4. Start the single server
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server (API + Collab) running on port ${PORT}`);
+});
