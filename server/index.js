@@ -5,37 +5,44 @@ const mongoose = require('mongoose');
 const Y = require('yjs');
 
 // --- CONFIGURATION ---
-const API_PORT = 1234;       // REST API
-const COLLAB_PORT = 1235;    // WebSocket
+const API_PORT = 1234;       
+const COLLAB_PORT = 1235;    
 const MONGO_URI = 'mongodb://127.0.0.1:27017/doc_online';
 
-// --- 1. SETUP EXPRESS APP ---
+// --- SETUP EXPRESS APP ---
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- 2. DATABASE SETUP ---
+// --- DATABASE SETUP ---
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
+// [CHANGE 1] Update Schema to include "collaborators" array
 const DocumentSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true }, // UUID
+  name: { type: String, required: true, unique: true }, 
   title: { type: String, default: 'Untitled Document' },
-  ownerId: { type: String, required: true }, // Clerk User ID
-  data: Buffer, // Yjs Binary Data
+  ownerId: { type: String, required: true }, 
+  collaborators: { type: [String], default: [] }, // NEW FIELD
+  data: Buffer, 
   lastModified: { type: Date, default: Date.now }
 });
 
 const DocModel = mongoose.model('Document', DocumentSchema);
 
-// --- 3. API ROUTES ---
+// --- API ROUTES ---
 
-// GET: List documents for a specific user
+// [CHANGE 2] GET: List documents where user is Owner OR Collaborator
 app.get('/api/documents', async (req, res) => {
   const { userId } = req.query;
   try {
-    const docs = await DocModel.find({ ownerId: userId }, 'name title lastModified').sort({ lastModified: -1 });
+    const docs = await DocModel.find({ 
+      $or: [
+        { ownerId: userId },
+        { collaborators: userId } // Check if user is in the list
+      ]
+    }, 'name title lastModified ownerId').sort({ lastModified: -1 });
     res.json(docs);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch documents' });
@@ -52,6 +59,7 @@ app.post('/api/documents', async (req, res) => {
         name, 
         title: title || 'Untitled Document', 
         ownerId, 
+        collaborators: [], // Init empty
         data: Buffer.from([]) 
       });
       await doc.save();
@@ -62,7 +70,36 @@ app.post('/api/documents', async (req, res) => {
   }
 });
 
-// PUT: Update Title Explicitly (Fixes Renaming Bug)
+// [CHANGE 3] NEW POST: Join a document
+app.post('/api/documents/join', async (req, res) => {
+  const { documentId, userId } = req.body;
+  try {
+    // 1. Find the doc
+    const doc = await DocModel.findOne({ name: documentId });
+    
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // 2. Prevent adding the owner as a collaborator
+    if (doc.ownerId === userId) {
+      return res.json({ success: true, message: 'User is already the owner' });
+    }
+
+    // 3. Add userId to collaborators if not already there
+    if (!doc.collaborators.includes(userId)) {
+      doc.collaborators.push(userId);
+      await doc.save();
+    }
+
+    res.json({ success: true, title: doc.title });
+  } catch (err) {
+    console.error("Join error:", err);
+    res.status(500).json({ error: 'Failed to join document' });
+  }
+});
+
+// PUT: Update Title
 app.put('/api/documents/:name', async (req, res) => {
   try {
     const { title } = req.body;
@@ -87,47 +124,34 @@ app.delete('/api/documents/:name', async (req, res) => {
   }
 });
 
-// Start Express API
 app.listen(API_PORT, () => {
   console.log(`🚀 API Server running on http://localhost:${API_PORT}`);
 });
 
-// --- 4. HOCUSPOCUS WEBSOCKET SERVER ---
+// --- HOCUSPOCUS SERVER (Unchanged) ---
 const hocuspocus = new Server({
   port: COLLAB_PORT,
-
-async onLoadDocument(data) {
+  async onLoadDocument(data) {
     if (data.documentName === 'default') return null;
-
     try {
       const doc = await DocModel.findOne({ name: data.documentName });
-      
-      // Check if doc exists AND has data
       if (doc && doc.data && doc.data.length > 0) {
         const docData = new Uint8Array(doc.data);
-        
-        // Wrap Yjs update in a try-catch to handle corruption
         try {
           Y.applyUpdate(data.document, docData);
-          // console.log(`📂 Loaded: ${data.documentName}`);
           return data.document;
         } catch (e) {
-          console.error(`⚠️ Corrupted document found: ${data.documentName}. Starting fresh.`);
-          return null; // Start fresh if corrupted
+          return null; 
         }
       }
     } catch (err) {
       console.error("Database error during load:", err);
     }
-    
-    return null; // Start fresh if no document found
+    return null; 
   },
-
   async onStoreDocument(data) {
     const update = Y.encodeStateAsUpdate(data.document);
     const buf = Buffer.from(update);
-    // Note: We don't save title here anymore to avoid overwriting the API update
-    
     await DocModel.findOneAndUpdate(
       { name: data.documentName },
       { data: buf, lastModified: new Date() },
@@ -136,5 +160,4 @@ async onLoadDocument(data) {
   },
 });
 
-hocuspocus.listen()
-  .then(() => console.log(`✨ Collab Server running on ws://localhost:${COLLAB_PORT}`));
+hocuspocus.listen().then(() => console.log(`✨ Collab Server running on ws://localhost:${COLLAB_PORT}`));

@@ -278,12 +278,24 @@ useEffect(() => {
 )}
       {/* LEFT SIDEBAR */}
       <aside className={`sidebar left-side ${leftOpen ? 'open' : 'closed'}`}>
-        <div className="sidebar-header">
-          {leftOpen && <h3>File Manager</h3>}
-          <button className="toggle-btn visible" onClick={() => setLeftOpen(!leftOpen)}>
-            {leftOpen ? '◀' : '▶'}
-          </button>
-        </div>
+        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+  {leftOpen && (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {/* NEW BACK BUTTON */}
+      <button 
+        onClick={() => navigate('/')}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
+        title="Back to Dashboard"
+      >
+        🏠
+      </button>
+      <h3>File Manager</h3>
+    </div>
+  )}
+  <button className="toggle-btn visible" onClick={() => setLeftOpen(!leftOpen)}>
+    {leftOpen ? '◀' : '▶'}
+  </button>
+</div>
         {leftOpen && (
           <div className="sidebar-content">
             <div className="doc-meta-section">
