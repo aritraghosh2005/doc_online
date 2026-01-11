@@ -59,6 +59,19 @@ const Workspace = () => {
   const [onlineUsers, setOnlineUsers] = useState<CollabUser[]>([]);
   const [allCollaboratorIds, setAllCollaboratorIds] = useState<string[]>([]);
 
+  // 1. DEFINE API & WEBSOCKET URLS (Live vs Local)
+  // Logic: Use environment variable if present.
+  // For WebSockets, we replace 'http' with 'ws' or 'https' with 'wss' automatically if needed, 
+  // OR you can use a separate variable. Here we derive it for simplicity or use a separate env var.
+  
+  const API_BASE = import.meta.env.VITE_SERVER_URL || 'http://localhost:1234';
+  
+  // Hocuspocus (WebSocket) URL
+  // If you deploy Hocuspocus on a separate port/URL, set VITE_WS_URL.
+  // Otherwise, if it runs on the same server, we can guess it.
+  // Ideally, add VITE_WS_URL to your .env and Vercel.
+  const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:1235';
+
   // --- SETTINGS ---
   const [isRuleActive, setIsRuleActive] = useState(() => {
     const saved = localStorage.getItem('rule2020_active');
@@ -93,7 +106,6 @@ const Workspace = () => {
 
   // --- GENERATE COLORFUL BUBBLES ---
   const bubbles = useMemo(() => {
-    // A palette of vibrant colors for the bubbles
     const colors = [
       'linear-gradient(135deg, #fca5a5 0%, #ef4444 100%)', // Red
       'linear-gradient(135deg, #fdba74 0%, #f97316 100%)', // Orange
@@ -201,7 +213,8 @@ const Workspace = () => {
   const fetchDocuments = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch(`http://localhost:1234/api/documents?userId=${user.id}`);
+      // UPDATED: Use API_BASE
+      const res = await fetch(`${API_BASE}/api/documents?userId=${user.id}`);
       const data = await res.json();
       const validDocs = Array.isArray(data) ? data.filter(d => d && d.name) : [];
       setDocList(validDocs);
@@ -211,7 +224,7 @@ const Workspace = () => {
           setAllCollaboratorIds(currentDoc.collaborators || []);
       }
     } catch (err) { console.error("Failed to load documents", err); }
-  }, [user, documentId]);
+  }, [user, documentId, API_BASE]);
 
   useEffect(() => { if (isLoaded && user) fetchDocuments(); }, [isLoaded, user, fetchDocuments]);
 
@@ -219,7 +232,8 @@ const Workspace = () => {
     if (!user) return;
     const newId = uuidv4();
     try {
-        await fetch('http://localhost:1234/api/documents', {
+        // UPDATED: Use API_BASE
+        await fetch(`${API_BASE}/api/documents`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: newId, title: 'Untitled Document', ownerId: user.id })
         });
@@ -230,7 +244,9 @@ const Workspace = () => {
   const handleDelete = async (e: React.MouseEvent, docId: string, docName: string) => {
     e.stopPropagation(); 
     if (window.confirm(`Are you sure you want to delete "${docName}"?`)) {
-        try { await fetch(`http://localhost:1234/api/documents/${docId}`, { method: 'DELETE' });
+        try { 
+            // UPDATED: Use API_BASE
+            await fetch(`${API_BASE}/api/documents/${docId}`, { method: 'DELETE' });
             if (docId === documentId) { navigate('/'); window.location.reload(); } else { fetchDocuments(); }
         } catch (err) { alert("Failed to delete"); }
     }
@@ -239,7 +255,8 @@ const Workspace = () => {
   const handleRenameChange = (e: React.ChangeEvent<HTMLInputElement>) => setDocTitle(e.target.value);
   const saveTitle = async () => {
     try {
-      await fetch(`http://localhost:1234/api/documents/${documentId}`, {
+      // UPDATED: Use API_BASE
+      await fetch(`${API_BASE}/api/documents/${documentId}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: docTitle })
       });
       ydoc.getMap('metadata').set('title', docTitle); fetchDocuments();
@@ -253,9 +270,13 @@ const Workspace = () => {
   };
 
   useEffect(() => {
+    // UPDATED: Use WS_URL
     const newProvider = new HocuspocusProvider({
-      url: 'ws://localhost:1235', name: documentId, document: ydoc,
-      onConnect: () => setConnected(true), onClose: () => setConnected(false),
+      url: WS_URL, // <--- Using the environment variable now
+      name: documentId, 
+      document: ydoc,
+      onConnect: () => setConnected(true), 
+      onClose: () => setConnected(false),
     });
     newProvider.on('awarenessUpdate', () => {
         const awareness = (newProvider as any).awareness; 
@@ -270,7 +291,7 @@ const Workspace = () => {
     });
     setProvider(newProvider);
     return () => { newProvider.destroy(); };
-  }, [ydoc, documentId]);
+  }, [ydoc, documentId, WS_URL]);
 
   const handleOpenDoc = (targetId: string) => { navigate(`/document/${targetId}`); window.location.reload(); };
   const handleLogout = async () => { await signOut(); navigate('/'); };

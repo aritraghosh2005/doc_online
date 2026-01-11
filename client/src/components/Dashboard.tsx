@@ -18,6 +18,10 @@ const Dashboard = () => {
   const [documents, setDocuments] = useState<DBDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinId, setJoinId] = useState('');
+
+  // 1. DEFINE API BASE URL (Live vs Local)
+  // This will use your Vercel Environment Variable if it exists, otherwise it defaults to localhost.
+  const API_BASE = import.meta.env.VITE_SERVER_URL || 'http://localhost:1234';
   
   // --- FIXED MOUSE TRAIL LOGIC ---
   useEffect(() => {
@@ -39,7 +43,6 @@ const Dashboard = () => {
       parentDiv.style.top = (e.clientY - 50) + 'px';
 
       // 5. AUTO-REMOVE after 0.5s (Matches CSS animation time)
-      // This ensures the trail disappears when you stop moving.
       setTimeout(() => {
         if(parentDiv.parentNode) {
           parentDiv.parentNode.removeChild(parentDiv);
@@ -53,7 +56,6 @@ const Dashboard = () => {
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       const all = document.getElementsByClassName('loader-container');
-      // Convert to array to safely iterate and remove
       Array.from(all).forEach(el => {
         if(el.parentNode) el.parentNode.removeChild(el);
       });
@@ -63,10 +65,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      fetch(`http://localhost:1234/api/documents?userId=${user.id}`)
+      // UPDATED: Use API_BASE variable
+      fetch(`${API_BASE}/api/documents?userId=${user.id}`)
         .then(res => res.json())
         .then(data => {
-          const validDocs = Array.isArray(data) ? data.filter(d => d.name) : [];
+          const validDocs = Array.isArray(data) ? data.filter((d: any) => d.name) : [];
           setDocuments(validDocs);
           setLoading(false);
         })
@@ -75,13 +78,14 @@ const Dashboard = () => {
           setLoading(false);
         });
     }
-  }, [user]);
+  }, [user, API_BASE]); // Added API_BASE to dependencies
 
   const handleCreateNew = async () => {
     if (!user) return;
     const newId = uuidv4();
     try {
-      await fetch('http://localhost:1234/api/documents', {
+      // UPDATED: Use API_BASE variable
+      await fetch(`${API_BASE}/api/documents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -92,6 +96,7 @@ const Dashboard = () => {
       });
       navigate(`/document/${newId}`);
     } catch (e) {
+      console.error(e);
       alert("Error creating document. Is the backend running?");
     }
   };
@@ -102,7 +107,8 @@ const Dashboard = () => {
     if (!user) return;
 
     try {
-      const res = await fetch('http://localhost:1234/api/documents/join', {
+      // UPDATED: Use API_BASE variable
+      const res = await fetch(`${API_BASE}/api/documents/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: joinId.trim(), userId: user.id })
