@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; // Added useEffect
+import { useState, useEffect } from 'react';
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -43,6 +43,7 @@ const FontSize = Extension.create({
 });
 
 // 1. TOOLBAR COMPONENT
+// NOTE: Class name changed to 'editor-toolbar' to match new CSS
 const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
   const [showHighlightPalette, setShowHighlightPalette] = useState(false);
   if (!editor) return null;
@@ -71,8 +72,9 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
   };
 
   return (
-    <div className="toolbar-container">
-      <div className="word-toolbar">
+    <div className="editor-toolbar">
+      {/* We keep the inner structure for button grouping */}
+      <div className="word-toolbar" style={{border: 'none', boxShadow: 'none'}}>
         {/* GROUP 1: HEADINGS */}
         <div className="group">
           <select 
@@ -151,14 +153,14 @@ const MenuBar = ({ editor, onSave }: { editor: any, onSave: () => void }) => {
         <div className="group">
           <button 
             onClick={() => editor.chain().focus().toggleBulletList().run()} 
-            className={editor.isActive('bulletList') ? 'is-active' : ''}
+            className={`text-btn ${editor.isActive('bulletList') ? 'is-active' : ''}`} 
             title="Bullet List"
           >
             • List
           </button>
           <button 
             onClick={() => editor.chain().focus().toggleOrderedList().run()} 
-            className={editor.isActive('orderedList') ? 'is-active' : ''}
+            className={`text-btn ${editor.isActive('orderedList') ? 'is-active' : ''}`} 
             title="Ordered List"
           >
             1. List
@@ -190,6 +192,12 @@ const Editor = ({ provider, ydoc }: { provider: any, ydoc: Y.Doc }) => {
       FontSize,
       Collaboration.configure({ document: ydoc }),
     ],
+    editorProps: {
+      attributes: {
+        // This class connects to the CSS to provide the A4 Sheet look
+        class: 'prose focus:outline-none', 
+      },
+    },
     onUpdate: () => setForceUpdate(n => n + 1),
     onSelectionUpdate: () => setForceUpdate(n => n + 1),
     onTransaction: () => setForceUpdate(n => n + 1),
@@ -203,10 +211,9 @@ const Editor = ({ provider, ydoc }: { provider: any, ydoc: Y.Doc }) => {
   // --- SHORTCUT LISTENER (Ctrl+S) ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for Ctrl+S (Windows/Linux) or Cmd+S (Mac)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault(); // Stop browser "Save Page" dialog
-        handleSave();       // Trigger our save logic
+        e.preventDefault(); 
+        handleSave();       
       }
     };
 
@@ -215,11 +222,15 @@ const Editor = ({ provider, ydoc }: { provider: any, ydoc: Y.Doc }) => {
   }, []);
 
   return (
-    <div className="editor-wrapper">
+    // Changed class name to prevent conflict with Workspace.css
+    <div className="modern-editor-wrapper">
       <MenuBar editor={editor} onSave={handleSave} />
-      <div className="a4-sheet">
+      
+      {/* Scroll area for centering */}
+      <div className="editor-scroll-area">
         <EditorContent editor={editor} />
       </div>
+
       <div className={`toast-notification ${showToast ? 'visible' : ''}`}>
         ✅ Changes Saved Successfully!
       </div>

@@ -1,289 +1,105 @@
-/* 1. Wrapper */
-.editor-wrapper {
-  display: flex; 
-  flex-direction: column; 
-  align-items: center;
-  width: 816px; 
-  flex-shrink: 0;
-  position: relative;
-}
-
-/* 2. Toolbar Container - STICKY TOP */
-.toolbar-container {
-  position: sticky; 
-  top: 0; 
-  z-index: 100;
-  width: 100%; 
-  background-color: #f3f4f6; /* Matches background */
-  padding-top: 10px;
-  padding-bottom: 20px;
-}
-
-/* 3. The Toolbar Itself */
-.word-toolbar {
-  background: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* Clean shadow */
-  border: 1px solid #e5e7eb;
-  
-  display: flex; 
-  align-items: center; 
-  justify-content: flex-start; /* Aligns items to start */
-  gap: 12px; /* Uniform gap between groups */
+/* 1. MAIN CONTAINER (Updated Class Name) */
+.modern-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   width: 100%;
+  background-color: #f3f4f6;
+  overflow: hidden; /* Only the inner scroll area scrolls */
+  position: relative; 
 }
 
-/* Grouping Logic */
-.group { 
-  display: flex; 
-  gap: 4px; 
-  align-items: center; 
-}
-
-/* Dividers */
-.divider { 
-  width: 1px; 
-  height: 24px; 
-  background: #e5e7eb; 
-  margin: 0 4px;
-}
-
-/* Buttons */
-.word-toolbar button {
-  padding: 6px; 
-  width: 34px; /* Slightly larger targets */
-  height: 34px;
-  border: 1px solid transparent; 
-  background: transparent; 
-  border-radius: 4px; 
-  cursor: pointer; 
-  color: #4b5563; 
-  font-weight: 600;
-  transition: all 0.2s; 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.word-toolbar button:hover { 
-  background: #f3f4f6; 
-  color: #111;
-}
-
-/* ACTIVE STATE */
-.word-toolbar button.is-active { 
-  background: #e0e7ff !important;  
-  color: #2563eb !important;      
-  border-color: #c7d2fe !important; 
-}
-
-/* --- DROPDOWNS --- */
-.toolbar-select {
-  padding: 0 8px; 
-  border: 1px solid #e5e7eb; 
-  border-radius: 4px; 
-  outline: none; 
-  color: #374151; 
-  cursor: pointer;
-  background-color: white; 
-  font-size: 13px;
-  height: 34px; /* Matches button height */
-  transition: border-color 0.2s;
-}
-
-.toolbar-select:hover { border-color: #9ca3af; }
-
-.heading-select { width: 110px; }
-.font-family-select { width: 100px; }
-.font-size-select { width: 65px; }
-
-.highlight-swatches-container {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  background-color: #f9fafb; /* Subtle background to group them */
-  padding: 3px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  margin-left: 4px; /* Small gap from Underline button */
-}
-
-/* Base style for all swatch buttons */
-.swatch-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px; /* Rounded Square */
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.1s ease-in-out;
-  border: 2px solid transparent; /* Invisible border for hover state */
-}
-
-/* Hover effect for all swatches */
-.swatch-btn:hover {
-  transform: scale(1.1); /* Slight pop effect */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Specific style for the "Unset" 🚫 button */
-.unset-swatch {
+/* 2. TOOLBAR - No Top Gap */
+.editor-toolbar {
+  flex-shrink: 0;
   background: white;
-  border: 1px solid #e5e7eb;
-  font-size: 12px;
-  color: #666;
-}
-.unset-swatch:hover {
-    border-color: #9ca3af;
-    background: #f3f4f6;
-}
-
-/* Specific style for color swatches */
-.color-swatch {
-    border: 2px solid rgba(0,0,0,0.05); /* Subtle border to define light colors against white */
-}
-
-/* Active state for a color swatch (when text is highlighted with that color) */
-.is-active-swatch {
-  border-color: #2563eb; /* Blue ring */
-  box-shadow: 0 0 0 1px #2563eb; /* Double ring effect */
-}
-
-/* Save Button */
-.save-group { margin-left: auto; }
-
-.save-btn {
-  width: auto !important;
-  background-color: #2563eb !important;
-  color: white !important;
-  padding: 6px 20px !important;
-  font-weight: 600;
-}
-
-.save-btn:hover { 
-  background-color: #1d4ed8 !important; 
-  box-shadow: 0 2px 5px rgba(37,99,235,0.3); 
-}
-
-/* 4. A4 Paper */
-.a4-sheet {
-  width: 816px; 
-  min-height: 1056px;
-  background: white;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-  padding: 96px; 
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  width: 100%;
   box-sizing: border-box;
 }
 
-.ProseMirror { 
-  outline: none; 
-  min-height: 900px; 
-  font-size: 16px; 
-  line-height: 1.6; 
-  color: #1f2937; 
-}
-
-.ProseMirror p { margin-bottom: 1em; }
-
-/* Toast */
-.toast-notification {
-  position: fixed;
-  bottom: 30px; left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  background-color: #1f2937; color: white;
-  padding: 12px 24px; border-radius: 50px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  font-weight: 500; z-index: 2000; opacity: 0;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.toast-notification.visible {
-  transform: translateX(-50%) translateY(0);
-  opacity: 1;
-}
-
-/* 1. Wrapper for positioning */
-.highlight-menu-wrapper {
-  position: relative; /* Essential for absolute positioning of popup */
-  display: inline-block;
-}
-
-/* 2. The main button with the arrow */
-.highlight-trigger-btn {
-  width: 45px !important; /* Slightly wider to fit arrow */
+.word-toolbar { 
   display: flex; 
+  flex-wrap: wrap; 
   align-items: center; 
-  justify-content: center;
+  gap: 16px; 
+  padding: 16px 20px;
 }
 
-/* 3. The Dropdown Popup (The Row of Colors) */
-.highlight-popup {
-  position: absolute;
-  top: 115%; /* Just below the button */
-  left: 0;
-  
-  /* Flex row layout for the colors */
+.group { display: flex; align-items: center; gap: 4px; }
+.divider { width: 1px; height: 24px; background-color: #e5e7eb; margin: 0 8px; }
+
+/* Buttons */
+.toolbar-select { padding: 4px 8px; border: 1px solid transparent; border-radius: 4px; background: transparent; font-size: 14px; cursor: pointer; outline: none; height: 28px; }
+.toolbar-select:hover { background-color: #f3f4f6; border-color: #d1d5db; }
+.group button, .highlight-trigger-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; transition: all 0.2s; color: #4b5563; }
+.group button:hover { background-color: #f3f4f6; color: #111; }
+.group button.is-active { background-color: #e0e7ff; color: #2563eb; }
+.group button.text-btn { width: auto; padding: 0 10px; font-weight: 500; font-size: 13px; }
+.save-btn { background-color: #2563eb; color: white; margin-left: 10px; padding: 5px 15px; border-radius: 5px; border: none; cursor: pointer; }
+.save-btn:hover { background-color: #1d4ed8; }
+
+/* 3. SCROLL AREA - Center Content, Right-Attached Scrollbar */
+.editor-scroll-area {
+  flex-grow: 1;
+  width: 100%;
+  overflow-y: scroll; /* Force scrollbar */
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center; /* CENTERS THE A4 PAGE */
+  padding: 30px 0;
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+}
+
+/* Scrollbar flush to right */
+.editor-scroll-area::-webkit-scrollbar {
+  width: 14px;
+  background: white; /* Matches sidebar */
+  border-left: 1px solid #e5e7eb;
+}
+.editor-scroll-area::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border: 4px solid white; 
+  border-radius: 10px;
+}
+.editor-scroll-area::-webkit-scrollbar-thumb:hover { background-color: #a0a0a0; }
+
+/* 4. THE A4 PAPER SHEET */
+.ProseMirror {
+  width: 210mm; 
+  min-height: 297mm;
+  background-color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 25mm; 
+  margin-bottom: 30px;
+  /* Centering */
+  margin-left: auto; margin-right: auto;
   
-  background: white;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  
-  /* Floating Shadow */
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-  
-  /* Ensure it sits on top of everything */
-  z-index: 500;
-  
-  /* Prevents text selection inside popup */
-  user-select: none;
-  
-  /* Animation */
-  animation: fadeIn 0.15s ease-out;
+  font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6;
+  color: #1f2937; outline: none; box-sizing: border-box;
+  scroll-snap-align: start;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #9ca3af; content: attr(data-placeholder); float: left; height: 0; pointer-events: none;
 }
 
-/* 4. Swatch Styling (Reused) */
-.swatch-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  cursor: pointer;
-  padding: 0;
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  transition: transform 0.1s;
-  border: 2px solid transparent;
+/* 5. TOAST NOTIFICATION */
+.toast-notification {
+  position: fixed; bottom: 30px; right: 300px; /* Positioned near right sidebar */
+  background-color: #10b981; color: white; padding: 10px 20px;
+  border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-weight: 500; font-size: 14px; z-index: 2000; pointer-events: none;
+  opacity: 0; transform: translateY(10px); transition: opacity 0.3s ease, transform 0.3s ease;
 }
+.toast-notification.visible { opacity: 1; transform: translateY(0); }
 
-.swatch-btn:hover {
-  transform: scale(1.15);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.unset-swatch {
-  background: white;
-  border: 1px solid #e5e7eb;
-  font-size: 12px;
-}
-.unset-swatch:hover { background: #f3f4f6; border-color: #9ca3af; }
-
-.color-swatch {
-    border: 1px solid rgba(0,0,0,0.1);
-}
-
-.is-active-swatch {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
-}
+/* Highlight Menu */
+.highlight-menu-wrapper { position: relative; }
+.highlight-popup { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; padding: 5px; display: flex; gap: 5px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 60; margin-top: 5px; }
+.swatch-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #eee; cursor: pointer; }

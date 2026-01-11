@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useUser, UserButton } from '@clerk/clerk-react';
@@ -11,17 +11,6 @@ interface DBDoc {
   lastModified?: string;
 }
 
-// Updated Interface for Fading Particles
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  color: string; // Stored as "r,g,b" so we can add opacity later
-  life: number;  // 1.0 = fully visible, 0.0 = deleted
-}
-
 const Dashboard = () => {
   const { user, isLoaded } = useUser();
   const navigate = useNavigate();
@@ -30,95 +19,47 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [joinId, setJoinId] = useState('');
   
-  // --- MOUSE TRAIL PARTICLE LOGIC ---
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
+  // --- FIXED MOUSE TRAIL LOGIC ---
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let particles: Particle[] = [];
-    
-    // 1. Counter to track mouse moves
-    let throttleCounter = 0; 
-
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    const createParticles = (e: MouseEvent) => {
-      // 2. Increment counter
-      throttleCounter++;
-
-      // 3. Throttle Check - CHANGED from 4 to 2
-      // Lower number = gaps filled in = smoother line
-      if (throttleCounter % 2 !== 0) return; 
-
-      const count = 1; 
-      for (let i = 0; i < count; i++) {
-        const r = Math.floor(Math.random() * 255);
-        const g = Math.floor(Math.random() * 255);
-        const b = Math.floor(Math.random() * 255);
-
-        particles.push({
-          x: e.clientX,
-          y: e.clientY,
-          // CHANGED: Velocity reduced from 3 to 1 for "gentle" drift
-          vx: (Math.random() - 0.5) * 1, 
-          vy: (Math.random() - 0.5) * 1,
-          // CHANGED: Size reduced from 10-20 to 2-6 for "dust" look
-          size: Math.random() * 4 + 7,
-          color: `${r},${g},${b}`,
-          life: 1.0
-        });
-      }
-    };
-
-    // 2. Animation Loop
-    const animate = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-        for (let i = 0; i < particles.length; i++) {
-          const p = particles[i];
-          p.x += p.vx;
-          p.y += p.vy;
-          
-          // CHANGED: Slower fade (was 0.02)
-          p.life -= 0.015; 
-          // CHANGED: Slower shrink (was 0.95)
-          p.size *= 0.98; 
-  
-          if (p.life > 0 && p.size > 0.5) {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${p.color}, ${p.life})`; 
-            ctx.fill();
-          } else {
-            particles.splice(i, 1);
-            i--;
-          }
-        }
-  
-        animationFrameId = requestAnimationFrame(animate);
-      };
-  
-      window.addEventListener('resize', resizeCanvas);
-      window.addEventListener('mousemove', createParticles);
+    const handleMouseMove = (e: MouseEvent) => {
+      // 1. Create the container
+      const parentDiv = document.createElement('div');
+      parentDiv.className = "loader-container";
       
-      resizeCanvas();
-      animate();
-  
-      return () => {
-        window.removeEventListener('resize', resizeCanvas);
-        window.removeEventListener('mousemove', createParticles);
-        cancelAnimationFrame(animationFrameId);
-      };
+      // 2. Create the inner shape
+      const innerDiv = document.createElement('div');
+      innerDiv.className = "loader";
+      parentDiv.appendChild(innerDiv);
+      
+      // 3. Append to body
+      document.body.appendChild(parentDiv);
+
+      // 4. Position it (Centered)
+      parentDiv.style.left = (e.clientX - 50) + 'px';
+      parentDiv.style.top = (e.clientY - 50) + 'px';
+
+      // 5. AUTO-REMOVE after 0.5s (Matches CSS animation time)
+      // This ensures the trail disappears when you stop moving.
+      setTimeout(() => {
+        if(parentDiv.parentNode) {
+          parentDiv.parentNode.removeChild(parentDiv);
+        }
+      }, 500); 
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      const all = document.getElementsByClassName('loader-container');
+      // Convert to array to safely iterate and remove
+      Array.from(all).forEach(el => {
+        if(el.parentNode) el.parentNode.removeChild(el);
+      });
+    };
   }, []);
-  // --- END PARTICLE LOGIC ---
+  // --- END MOUSE TRAIL LOGIC ---
 
   useEffect(() => {
     if (user) {
@@ -182,10 +123,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* 1. THE PARTICLES CANVAS */}
-      <canvas ref={canvasRef} className="particle-canvas" />
-
-      {/* 2. HEADER (Stays on top) */}
+      {/* HEADER */}
       <header className="dashboard-header">
         <div className="brand">
           <span className="logo-icon">📄</span>
@@ -197,7 +135,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* 3. MAIN CONTENT (Stays on top of canvas) */}
+      {/* MAIN CONTENT */}
       <main className="dashboard-content">
         <div className="actions-bar">
           <div className="create-section">
