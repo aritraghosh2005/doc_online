@@ -32,13 +32,13 @@ const FontSize = Extension.create({
   },
   addCommands() {
     return {
-      setFontSize: (fontSize: string) => ({ commands }) => {
+      setFontSize: (fontSize: string) => ({ commands }: any) => {
         return commands.setMark('textStyle', { fontSize: fontSize });
       },
-      unsetFontSize: () => ({ commands }) => {
+      unsetFontSize: () => ({ commands }: any) => {
         return commands.setMark('textStyle', { fontSize: null });
       },
-    };
+    } as any; // <--- The 'as any' here forces TypeScript to accept your custom commands
   },
 });
 
