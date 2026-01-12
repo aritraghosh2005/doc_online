@@ -5,8 +5,8 @@ const mongoose = require('mongoose');
 const Y = require('yjs');
 const http = require('http');
 
-// --- ROBUST HOCUSPOCUS IMPORT ---
-// This handles different export styles (CommonJS vs ES Modules)
+// --- 1. ROBUST IMPORT FIX ---
+// This handles cases where the library exports differently in production
 const HocuspocusLib = require('@hocuspocus/server');
 const Server = HocuspocusLib.Server || HocuspocusLib.default || HocuspocusLib;
 
@@ -37,6 +37,7 @@ const DocumentSchema = new mongoose.Schema({
   data: Buffer, 
   lastModified: { type: Date, default: Date.now }
 });
+
 const DocModel = mongoose.model('Document', DocumentSchema);
 
 // --- API ROUTES ---
@@ -47,7 +48,9 @@ app.get('/api/documents', async (req, res) => {
       $or: [{ ownerId: userId }, { collaborators: userId }]
     }, 'name title lastModified ownerId').sort({ lastModified: -1 });
     res.json(docs);
-  } catch (err) { res.status(500).json({ error: 'Failed to fetch documents' }); }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch documents' });
+  }
 });
 
 app.post('/api/documents', async (req, res) => {
@@ -59,7 +62,9 @@ app.post('/api/documents', async (req, res) => {
       await doc.save();
     }
     res.json(doc);
-  } catch (err) { res.status(500).json({ error: 'Could not create document' }); }
+  } catch (err) {
+    res.status(500).json({ error: 'Could not create document' });
+  }
 });
 
 app.post('/api/documents/join', async (req, res) => {
@@ -68,9 +73,14 @@ app.post('/api/documents/join', async (req, res) => {
     const doc = await DocModel.findOne({ name: documentId });
     if (!doc) return res.status(404).json({ error: 'Document not found' });
     if (doc.ownerId === userId) return res.json({ success: true, message: 'User is already the owner' });
-    if (!doc.collaborators.includes(userId)) { doc.collaborators.push(userId); await doc.save(); }
+    if (!doc.collaborators.includes(userId)) {
+      doc.collaborators.push(userId);
+      await doc.save();
+    }
     res.json({ success: true, title: doc.title });
-  } catch (err) { res.status(500).json({ error: 'Failed to join document' }); }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to join document' });
+  }
 });
 
 app.put('/api/documents/:name', async (req, res) => {
@@ -78,12 +88,18 @@ app.put('/api/documents/:name', async (req, res) => {
     const { title } = req.body;
     await DocModel.findOneAndUpdate({ name: req.params.name }, { title: title }, { new: true });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: 'Failed to update title' }); }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update title' });
+  }
 });
 
 app.delete('/api/documents/:name', async (req, res) => {
-  try { await DocModel.deleteOne({ name: req.params.name }); res.json({ success: true }); } 
-  catch (err) { res.status(500).json({ error: 'Failed to delete' }); }
+  try {
+    await DocModel.deleteOne({ name: req.params.name });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete' });
+  }
 });
 
 // --- COMBINED SERVER SETUP ---
@@ -117,13 +133,18 @@ const hocuspocus = new Server({
   },
 });
 
-// --- HANDLE WEBSOCKET UPGRADES ---
+// --- 2. WEBSOCKET CRASH FIX ---
+// Instead of calling hocuspocus.handleUpgrade (which doesn't exist),
+// we access the internal WebSocket server directly.
 httpServer.on('upgrade', (request, socket, head) => {
-  if (hocuspocus.handleUpgrade) {
-    hocuspocus.handleUpgrade(request, socket, head);
+  const wsServer = hocuspocus.webSocketServer;
+  if (wsServer) {
+    wsServer.handleUpgrade(request, socket, head, (ws) => {
+      wsServer.emit('connection', ws, request);
+    });
   } else {
-    // Fallback: Some versions use 'handleConnection', but usually handleUpgrade is correct.
-    console.error('⚠️ Critical: handleUpgrade is missing. Object keys:', Object.keys(hocuspocus));
+    // If we can't find the internal server, we destroy the socket to prevent hanging
+    console.error('⚠️ Critical: WebSocketServer is missing.');
     socket.destroy();
   }
 });
