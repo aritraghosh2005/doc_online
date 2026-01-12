@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+// Import Server safely
 const { Server } = require('@hocuspocus/server');
 const mongoose = require('mongoose');
 const Y = require('yjs');
@@ -8,13 +9,12 @@ const http = require('http');
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 1234;
-// DEFAULT to local mongo if not set, but Render uses the env variable
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/doc_online';
 
 // --- SETUP EXPRESS APP ---
 const app = express();
 
-// FIX 1: Allow ALL origins to stop CORS errors completely
+// 1. ALLOW ALL ORIGINS (Fixes CORS)
 app.use(cors({
   origin: "*", 
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -116,10 +116,11 @@ app.delete('/api/documents/:name', async (req, res) => {
 // --- COMBINED SERVER SETUP ---
 const httpServer = http.createServer(app);
 
-// FIX 2: Use Server.configure() instead of new Server()
-const hocuspocus = Server.configure({
+// 2. CONFIGURE HOCUSPOCUS (Standard Way)
+const hocuspocus = new Server({
   name: 'hocuspocus-server',
-  port: null, // IMPORTANT: Let Express handle the port
+  // IMPORTANT: port null ensures it doesn't try to start its own server
+  port: null, 
   timeout: 4000,
   async onLoadDocument(data) {
     if (data.documentName === 'default') return null;
@@ -144,12 +145,18 @@ const hocuspocus = Server.configure({
   },
 });
 
-// 3. Handle WebSocket Upgrades
+// 3. HANDLE WEBSOCKET UPGRADES
 httpServer.on('upgrade', (request, socket, head) => {
-  hocuspocus.handleUpgrade(request, socket, head);
+  // Add a safety check and log
+  if (typeof hocuspocus.handleUpgrade === 'function') {
+    hocuspocus.handleUpgrade(request, socket, head);
+  } else {
+    console.error('❌ Error: hocuspocus.handleUpgrade is not a function. Check package version.');
+    socket.destroy();
+  }
 });
 
-// 4. Start Server
+// 4. START SERVER
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server (API + Collab) running on port ${PORT}`);
 });
