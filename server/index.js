@@ -1,21 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Server } = require('@hocuspocus/server');
 const mongoose = require('mongoose');
 const Y = require('yjs');
 const http = require('http');
 
+// --- ROBUST HOCUSPOCUS IMPORT ---
+// This handles different export styles (CommonJS vs ES Modules)
+const HocuspocusLib = require('@hocuspocus/server');
+const Server = HocuspocusLib.Server || HocuspocusLib.default || HocuspocusLib;
+
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 1234;
-// DEFAULT to local, but log if it's missing
-const MONGO_URI = process.env.MONGO_URI; 
-
-if (!MONGO_URI) {
-  console.error("⚠️ WARNING: MONGO_URI is missing from Environment Variables! Falling back to localhost (This will fail on Render).");
-}
-
-const dbUrl = MONGO_URI || 'mongodb://127.0.0.1:27017/doc_online';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/doc_online';
 
 // --- SETUP EXPRESS APP ---
 const app = express();
@@ -27,7 +24,7 @@ app.use(cors({
 app.use(express.json());
 
 // --- DATABASE SETUP ---
-mongoose.connect(dbUrl)
+mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
@@ -40,10 +37,9 @@ const DocumentSchema = new mongoose.Schema({
   data: Buffer, 
   lastModified: { type: Date, default: Date.now }
 });
-
 const DocModel = mongoose.model('Document', DocumentSchema);
 
-// --- API ROUTES (Keep your existing routes) ---
+// --- API ROUTES ---
 app.get('/api/documents', async (req, res) => {
   const { userId } = req.query;
   try {
@@ -51,9 +47,7 @@ app.get('/api/documents', async (req, res) => {
       $or: [{ ownerId: userId }, { collaborators: userId }]
     }, 'name title lastModified ownerId').sort({ lastModified: -1 });
     res.json(docs);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch documents' });
-  }
+  } catch (err) { res.status(500).json({ error: 'Failed to fetch documents' }); }
 });
 
 app.post('/api/documents', async (req, res) => {
@@ -65,9 +59,7 @@ app.post('/api/documents', async (req, res) => {
       await doc.save();
     }
     res.json(doc);
-  } catch (err) {
-    res.status(500).json({ error: 'Could not create document' });
-  }
+  } catch (err) { res.status(500).json({ error: 'Could not create document' }); }
 });
 
 app.post('/api/documents/join', async (req, res) => {
@@ -76,14 +68,9 @@ app.post('/api/documents/join', async (req, res) => {
     const doc = await DocModel.findOne({ name: documentId });
     if (!doc) return res.status(404).json({ error: 'Document not found' });
     if (doc.ownerId === userId) return res.json({ success: true, message: 'User is already the owner' });
-    if (!doc.collaborators.includes(userId)) {
-      doc.collaborators.push(userId);
-      await doc.save();
-    }
+    if (!doc.collaborators.includes(userId)) { doc.collaborators.push(userId); await doc.save(); }
     res.json({ success: true, title: doc.title });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to join document' });
-  }
+  } catch (err) { res.status(500).json({ error: 'Failed to join document' }); }
 });
 
 app.put('/api/documents/:name', async (req, res) => {
@@ -91,18 +78,12 @@ app.put('/api/documents/:name', async (req, res) => {
     const { title } = req.body;
     await DocModel.findOneAndUpdate({ name: req.params.name }, { title: title }, { new: true });
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to update title' });
-  }
+  } catch (err) { res.status(500).json({ error: 'Failed to update title' }); }
 });
 
 app.delete('/api/documents/:name', async (req, res) => {
-  try {
-    await DocModel.deleteOne({ name: req.params.name });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to delete' });
-  }
+  try { await DocModel.deleteOne({ name: req.params.name }); res.json({ success: true }); } 
+  catch (err) { res.status(500).json({ error: 'Failed to delete' }); }
 });
 
 // --- COMBINED SERVER SETUP ---
@@ -136,16 +117,14 @@ const hocuspocus = new Server({
   },
 });
 
-// --- DEBUG LOGGING ---
-console.log("Hocuspocus Object Keys:", Object.keys(hocuspocus));
-console.log("Has handleUpgrade?", typeof hocuspocus.handleUpgrade);
-
+// --- HANDLE WEBSOCKET UPGRADES ---
 httpServer.on('upgrade', (request, socket, head) => {
-  if (typeof hocuspocus.handleUpgrade === 'function') {
+  if (hocuspocus.handleUpgrade) {
     hocuspocus.handleUpgrade(request, socket, head);
   } else {
-    // If handleUpgrade is missing, we log it but don't crash the server
-    console.error('⚠️ Hocuspocus handleUpgrade is missing! WebSocket will not connect.');
+    // Fallback: Some versions use 'handleConnection', but usually handleUpgrade is correct.
+    console.error('⚠️ Critical: handleUpgrade is missing. Object keys:', Object.keys(hocuspocus));
+    socket.destroy();
   }
 });
 
