@@ -12,6 +12,55 @@
 
 ---
 
+## 📖 User Guide: How to use Doc_Online
+
+Welcome to **Doc_Online**. This guide will walk you through the dashboard, editor, and wellness features to ensure you get the most out of your collaborative experience.
+
+
+### 🚀 The Dashboard
+The dashboard is your starting point for document management.
+
+| Action | Instructions |
+| :--- | :--- |
+| **Start Working** | Click **"+ New Document"** to launch a blank canvas instantly. |
+| **Join a Team** | Paste a unique Document ID into the **"Paste Document ID to join..."** field and click **"Join"** to enter an existing session. |
+| **Manage History** | Browse **"Your Documents"** grid to reopen and continue previous work stored in MongoDB. |
+| **Visuals** | Move your cursor around to interact with the custom **Mouse Trail** effect. |
+
+
+### ✍️ Navigating the Editor
+The editor is divided into three main functional areas.
+
+#### 1. Sidebars & Document Controls
+* **Left Sidebar:** Use the **Home** button to return to the dashboard or the **Collapse** button to hide the menu for a focused writing view.
+* **Renaming:** Click the document title at the top to change it; the name **auto-saves** as you type.
+* **Right Sidebar:** Access **Settings**, **Logout**, or the **Download** button to export your work as a **.pdf** or **.docx** file.
+* **Utilities:** Add tasks to your **To-Do List** by typing and pressing `Enter` or `+`. Use **Quick Notes** for temporary thoughts; these are saved automatically.
+
+#### 2. The Writing Sheet
+The central canvas supports rich text formatting:
+* **Headings:** Use the toolbar to switch between **H1 (Title)**, **H2 (Heading)**, and **Normal** text.
+* **Styling:** Apply **Bold**, *Italics*, or __Underline__ formatting to your selection.
+* **Highlights:** Choose from **4 colors** in the highlighter palette to mark important sections.
+* **Lists:** Toggle between **Ordered** (numbered) and **Unordered** (bulleted) lists.
+* **Manual Saving:** While the app syncs in real-time, you can manually trigger a save using the **Save button** or by pressing `Ctrl + S`.
+
+#### 3. Collaboration & Presence
+Monitor your team at the bottom of the editor:
+* 🟢 **Green Circle:** The collaborator is currently active and online.
+* 🔴 **Red Circle (AFK):** Triggered automatically after **10 minutes** of inactivity or manually via the settings.
+
+
+### ⚙️ Wellness & Account Settings
+Located in the Right Sidebar, the Settings menu prioritizes your health.
+
+* **Rule 20-20-20:** When activated, the app prompts you every **20 minutes** to look **20 feet away** for **20 seconds** to reduce eye strain.
+* **Audio Alerts:** You can enable or disable the **Sound Effects** that play at the start and end of the wellness timer.
+* **Manual AFK:** Toggle your status to **AFK** manually if you need to step away from your desk.
+* **Account Deletion:** If you wish to permanently remove your data, use the **Delete Account** button for secure data wiping.
+
+---
+
 ## 📖 The Problem Statement
 In an increasingly remote and digital world, static documents are a bottleneck. Teams struggle with version control, conflicting edits, and the "locked file" phenomenon. Existing solutions are often bloated or proprietary.
 
