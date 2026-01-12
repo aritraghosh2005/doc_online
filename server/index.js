@@ -1,30 +1,26 @@
-require('dotenv').config(); // Load environment variables
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Server } = require('@hocuspocus/server');
 const mongoose = require('mongoose');
 const Y = require('yjs');
-const http = require('http'); // Required to combine servers
+const http = require('http');
 
 // --- CONFIGURATION ---
-// Use the PORT provided by the host, or default to 1234 for local
 const PORT = process.env.PORT || 1234;
-// Use the MONGO_URL from .env, or default to local
-const MONGO_URI = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/doc_online';
-// Allow frontend connection
-const FRONTEND_URL = process.env.FRONTEND_URL || '*'; 
+// DEFAULT to local mongo if not set, but Render uses the env variable
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/doc_online';
 
 // --- SETUP EXPRESS APP ---
 const app = express();
+
+// FIX 1: Allow ALL origins to stop CORS errors completely
 app.use(cors({
-  origin: [
-    "http://localhost:5173",                          // Allow local frontend
-    "https://doconlinefrontend-qgsbo8dsk-aritra-ghoshs-projects-dd96853d.vercel.app", // Allow specific Vercel preview
-    "https://doconlinefrontend.vercel.app"            // Allow main Vercel app
-  ],
+  origin: "*", 
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
+
 app.use(express.json());
 
 // --- DATABASE SETUP ---
@@ -45,16 +41,11 @@ const DocumentSchema = new mongoose.Schema({
 const DocModel = mongoose.model('Document', DocumentSchema);
 
 // --- API ROUTES ---
-
-// GET: List documents
 app.get('/api/documents', async (req, res) => {
   const { userId } = req.query;
   try {
     const docs = await DocModel.find({ 
-      $or: [
-        { ownerId: userId },
-        { collaborators: userId }
-      ]
+      $or: [{ ownerId: userId }, { collaborators: userId }]
     }, 'name title lastModified ownerId').sort({ lastModified: -1 });
     res.json(docs);
   } catch (err) {
@@ -62,7 +53,6 @@ app.get('/api/documents', async (req, res) => {
   }
 });
 
-// POST: Create new document
 app.post('/api/documents', async (req, res) => {
   try {
     const { name, title, ownerId } = req.body;
@@ -83,7 +73,6 @@ app.post('/api/documents', async (req, res) => {
   }
 });
 
-// POST: Join a document
 app.post('/api/documents/join', async (req, res) => {
   const { documentId, userId } = req.body;
   try {
@@ -97,12 +86,10 @@ app.post('/api/documents/join', async (req, res) => {
     }
     res.json({ success: true, title: doc.title });
   } catch (err) {
-    console.error("Join error:", err);
     res.status(500).json({ error: 'Failed to join document' });
   }
 });
 
-// PUT: Update Title
 app.put('/api/documents/:name', async (req, res) => {
   try {
     const { title } = req.body;
@@ -117,7 +104,6 @@ app.put('/api/documents/:name', async (req, res) => {
   }
 });
 
-// DELETE: Remove document
 app.delete('/api/documents/:name', async (req, res) => {
   try {
     await DocModel.deleteOne({ name: req.params.name });
@@ -128,30 +114,24 @@ app.delete('/api/documents/:name', async (req, res) => {
 });
 
 // --- COMBINED SERVER SETUP ---
-
-// 1. Create standard HTTP server wrapping Express
 const httpServer = http.createServer(app);
 
-// 2. Configure Hocuspocus
-const hocuspocus = new Server({
-  // No port here, we attach it manually below
+// FIX 2: Use Server.configure() instead of new Server()
+const hocuspocus = Server.configure({
+  name: 'hocuspocus-server',
+  port: null, // IMPORTANT: Let Express handle the port
+  timeout: 4000,
   async onLoadDocument(data) {
     if (data.documentName === 'default') return null;
     try {
       const doc = await DocModel.findOne({ name: data.documentName });
       if (doc && doc.data && doc.data.length > 0) {
         const docData = new Uint8Array(doc.data);
-        try {
-          Y.applyUpdate(data.document, docData);
-          return data.document;
-        } catch (e) {
-          return null; 
-        }
+        Y.applyUpdate(data.document, docData);
+        return data.document;
       }
-    } catch (err) {
-      console.error("Database error during load:", err);
-    }
-    return null; 
+    } catch (err) { console.error(err); }
+    return null;
   },
   async onStoreDocument(data) {
     const update = Y.encodeStateAsUpdate(data.document);
@@ -164,12 +144,12 @@ const hocuspocus = new Server({
   },
 });
 
-// 3. Handle WebSocket Upgrades manually
+// 3. Handle WebSocket Upgrades
 httpServer.on('upgrade', (request, socket, head) => {
   hocuspocus.handleUpgrade(request, socket, head);
 });
 
-// 4. Start the single server
+// 4. Start Server
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server (API + Collab) running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
