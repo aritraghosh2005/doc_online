@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-// Import Server safely
 const { Server } = require('@hocuspocus/server');
 const mongoose = require('mongoose');
 const Y = require('yjs');
@@ -9,22 +8,26 @@ const http = require('http');
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 1234;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/doc_online';
+// DEFAULT to local, but log if it's missing
+const MONGO_URI = process.env.MONGO_URI; 
+
+if (!MONGO_URI) {
+  console.error("⚠️ WARNING: MONGO_URI is missing from Environment Variables! Falling back to localhost (This will fail on Render).");
+}
+
+const dbUrl = MONGO_URI || 'mongodb://127.0.0.1:27017/doc_online';
 
 // --- SETUP EXPRESS APP ---
 const app = express();
-
-// 1. ALLOW ALL ORIGINS (Fixes CORS)
 app.use(cors({
   origin: "*", 
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
-
 app.use(express.json());
 
 // --- DATABASE SETUP ---
-mongoose.connect(MONGO_URI)
+mongoose.connect(dbUrl)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
@@ -40,7 +43,7 @@ const DocumentSchema = new mongoose.Schema({
 
 const DocModel = mongoose.model('Document', DocumentSchema);
 
-// --- API ROUTES ---
+// --- API ROUTES (Keep your existing routes) ---
 app.get('/api/documents', async (req, res) => {
   const { userId } = req.query;
   try {
@@ -58,13 +61,7 @@ app.post('/api/documents', async (req, res) => {
     const { name, title, ownerId } = req.body;
     let doc = await DocModel.findOne({ name });
     if (!doc) {
-      doc = new DocModel({ 
-        name, 
-        title: title || 'Untitled Document', 
-        ownerId, 
-        collaborators: [],
-        data: Buffer.from([]) 
-      });
+      doc = new DocModel({ name, title: title || 'Untitled Document', ownerId, collaborators: [], data: Buffer.from([]) });
       await doc.save();
     }
     res.json(doc);
@@ -79,7 +76,6 @@ app.post('/api/documents/join', async (req, res) => {
     const doc = await DocModel.findOne({ name: documentId });
     if (!doc) return res.status(404).json({ error: 'Document not found' });
     if (doc.ownerId === userId) return res.json({ success: true, message: 'User is already the owner' });
-    
     if (!doc.collaborators.includes(userId)) {
       doc.collaborators.push(userId);
       await doc.save();
@@ -93,11 +89,7 @@ app.post('/api/documents/join', async (req, res) => {
 app.put('/api/documents/:name', async (req, res) => {
   try {
     const { title } = req.body;
-    await DocModel.findOneAndUpdate(
-      { name: req.params.name },
-      { title: title },
-      { new: true }
-    );
+    await DocModel.findOneAndUpdate({ name: req.params.name }, { title: title }, { new: true });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update title' });
@@ -116,10 +108,9 @@ app.delete('/api/documents/:name', async (req, res) => {
 // --- COMBINED SERVER SETUP ---
 const httpServer = http.createServer(app);
 
-// 2. CONFIGURE HOCUSPOCUS (Standard Way)
+// Initialize Hocuspocus
 const hocuspocus = new Server({
   name: 'hocuspocus-server',
-  // IMPORTANT: port null ensures it doesn't try to start its own server
   port: null, 
   timeout: 4000,
   async onLoadDocument(data) {
@@ -145,18 +136,19 @@ const hocuspocus = new Server({
   },
 });
 
-// 3. HANDLE WEBSOCKET UPGRADES
+// --- DEBUG LOGGING ---
+console.log("Hocuspocus Object Keys:", Object.keys(hocuspocus));
+console.log("Has handleUpgrade?", typeof hocuspocus.handleUpgrade);
+
 httpServer.on('upgrade', (request, socket, head) => {
-  // Add a safety check and log
   if (typeof hocuspocus.handleUpgrade === 'function') {
     hocuspocus.handleUpgrade(request, socket, head);
   } else {
-    console.error('❌ Error: hocuspocus.handleUpgrade is not a function. Check package version.');
-    socket.destroy();
+    // If handleUpgrade is missing, we log it but don't crash the server
+    console.error('⚠️ Hocuspocus handleUpgrade is missing! WebSocket will not connect.');
   }
 });
 
-// 4. START SERVER
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server (API + Collab) running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
